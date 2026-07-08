@@ -1,0 +1,11 @@
+# Go test binaries.
+*.test
+
+# Coverage profiles produced by the CI coverage gate.
+cover.out
+*.cover
+coverage.txt
+
+# Local gopls workspace (not part of the module).
+go.work
+go.work.sum
