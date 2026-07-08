@@ -137,6 +137,10 @@ func TestParsePrograms(t *testing.T) {
 		{`foo(*$args)`, `(program [(call foo (* $args))])`},
 		{`Foo <<| tag == 'x' |>>`, `(program [(collect-exported Foo (== tag "x"))])`},
 		{`$v { 'a' => 1 }`, `(program [$v (hash ("a" => 1))])`},
+		// whitespace-sensitive '[': after a type reference it still indexes;
+		// after a non-reference a spaced '[' starts a new statement.
+		{`$x = Foo ['bar']`, `(program [(= $x (access Foo "bar"))])`},
+		{`$x = $arr [1]`, `(program [(= $x $arr) (array 1)])`},
 	}
 	for _, tc := range cases {
 		if got := ok(t, tc.src); got != tc.want {

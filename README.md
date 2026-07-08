@@ -27,19 +27,22 @@ reimplements them.
 prog, _ := puppet.Parse(`
   class nginx (String $vhost = 'localhost', Integer[1,65535] $port = 80) {
     package { 'nginx': ensure => installed }
-    -> service { 'nginx': ensure => running, enable => true }
+    -> service { 'nginx': ensure => running, require => Package['nginx'] }
   }
+  include nginx
 `)
-// prog is an *ast.Program you can walk, transform, or hand to the evaluator.
+fmt.Println(cat.JSON()) // Puppet catalog JSON: resources + containment/ordering edges
+_ = logs                // notice/info/warning/err messages
 ```
 
 ## Status
 
-**Milestone 1 — lexer + parser + AST — complete**, at **100 % test coverage**
-(enforced as a CI gate, including every parse-error path), `gofmt` + `go vet`
-clean, and green across all **six 64-bit Go targets** (amd64, arm64, riscv64,
-loong64, ppc64le, s390x). The evaluator and catalog compiler (Milestone 2) build
-on this model.
+**Milestones 1 & 2 complete** — the lexer + parser + AST **and** the evaluator +
+catalog compiler — at **100 % test coverage** (enforced as a CI gate, including
+every parse- and eval-error path), `gofmt` + `go vet` clean, and green across all
+**six 64-bit Go targets** (amd64, arm64, riscv64, loong64, ppc64le, s390x). The
+type system is delegated to **go-pcore**, data binding to **go-hiera**, and facts
+to an injectable provider backed by **go-facter**.
 
 ## What it parses
 
@@ -58,6 +61,26 @@ The lexer and parser cover the Puppet 8 grammar:
 | **Calls** | function calls, statement-style calls (`include x`), method chains `.`, lambdas `\|params\| { }` |
 | **Relationships** | `->`, `~>`, `<-`, `<~` chaining |
 
+## What it evaluates
+
+The evaluator compiles a manifest to a catalog:
+
+| Area | Support |
+|------|---------|
+| **Scopes** | top / node / local scopes, immutable variable binding, `$::top`-scope and `$facts` |
+| **Expressions** | arithmetic, comparison, boolean short-circuit, `=~`/`!~` (Regexp & Type), `in`, indexing/slicing, selectors, `if`/`unless`/`case` (value/Regexp/Type match) |
+| **Data types** | data-type expressions evaluated through **go-pcore** (`assert_type`, `type`, `=~ Integer[1,10]`, typed parameters) |
+| **Classes & defines** | `include`/`require`/`contain`, `class { }`, `inherits`, defined-type instantiation with `$title`/`$name`, automatic Hiera parameter data-binding |
+| **Iteration** | `each`, `map`, `filter`, `reduce`, `with`, `slice` over arrays and hashes |
+| **Built-in functions** | logging (`notice`/`info`/`warning`/`err`/`debug`/…), `fail`, `lookup` (via **go-hiera**), `assert_type`, `type`, and a core string/array/hash/numeric set |
+| **Catalog** | resource graph with containment + relationship + metaparameter (`require`/`before`/`notify`/`subscribe`) edges, serialized to Puppet catalog JSON |
+
+### The registry seam
+
+`Evaluator.RegisterFunction(name, fn)` adds or overrides a function at runtime.
+This is the seam **go-ruby-puppet** plugs into to contribute Ruby-defined custom
+functions and types without this repository depending on the Ruby VM.
+
 ## Packages
 
 | Package | Role |
@@ -66,17 +89,18 @@ The lexer and parser cover the Puppet 8 grammar:
 | `…/lexer` | tokenizer (`Lex`) |
 | `…/parser` | recursive-descent parser (`Parse`, `ParseExpression`) |
 | `…/ast` | Puppet::Pops-style node model + `Sexpr` renderer |
+| `…/eval` | evaluator (`EvalString`, `Evaluator`, `RegisterFunction`, `WithFacts`/`WithHiera`) |
+| `…/catalog` | catalog model + Puppet catalog JSON |
 
 ## Roadmap
 
-- **v0.1 (this release):** lexer, parser, AST.
-- **v0.2:** evaluator (scopes, class/define instantiation, iteration, built-in
-  functions, `lookup()` via go-hiera), catalog compiler (resource graph +
-  containment/relationship edges, Puppet catalog JSON), and a
-  function/type **registry seam** that **go-ruby-puppet** populates with
-  Ruby-defined custom functions and types.
-- **Staged (clearly not yet implemented):** EPP/ERB templates, exported
+- **v0.1 (this release):** lexer, parser, AST, evaluator, catalog compiler,
+  built-in function set, iteration, Hiera-backed `lookup()`, facts, and the
+  function/type registry seam.
+- **Staged for v0.2 (parsed but not yet evaluated — no fake stubs):** EPP/ERB
+  templates, resource **defaults**/**overrides**/**collectors**, exported
   resources / PuppetDB, the full stdlib module, and the plan/apply language.
+  Evaluating these today returns a clear "staged for v0.2" error.
 
 ## Principles
 
@@ -84,7 +108,7 @@ The lexer and parser cover the Puppet 8 grammar:
 - **Faithful to Puppet 8 / Pops.** Node kinds, grammar and precedence track the
   Puppet specification.
 - **No reinvention.** Types → go-pcore, data → go-hiera, facts → go-facter.
-- **100 % test coverage**, enforced in CI, including every parse-error branch,
-  on all six 64-bit Go arches.
+- **100 % test coverage**, enforced in CI, including every parse- and eval-error
+  branch, on all six 64-bit Go arches.
 
 BSD-3-Clause.

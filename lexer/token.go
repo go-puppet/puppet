@@ -135,6 +135,7 @@ type Token struct {
 	Pos    ast.Position // source position of the token start
 	Interp bool         // DQSTRING/HEREDOC: interpolation is enabled
 	Syntax string       // HEREDOC: optional syntax tag (e.g. "json")
+	Spaced bool         // whitespace/comment/newline preceded this token
 }
 
 var keywords = map[string]Kind{

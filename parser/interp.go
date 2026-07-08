@@ -193,7 +193,9 @@ func leadingBarewordIsVariable(s string) bool {
 	if len(r) == 0 || r[0] == '$' {
 		return false
 	}
-	if !(unicode.IsLetter(r[0]) || r[0] == '_') {
+	// Only a lower-case (or underscore) leading word is an implicit variable;
+	// an upper-case word is a type or resource reference (e.g. ${File['x']}).
+	if !(unicode.IsLower(r[0]) || r[0] == '_') {
 		return false
 	}
 	k := 0

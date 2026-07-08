@@ -363,6 +363,15 @@ func (p *parser) parsePostfix(c *cursor) (ast.Node, error) {
 	for {
 		switch p.kind(c) {
 		case lexer.LBrack:
+			// A `[` with preceding whitespace starts a new array/statement
+			// rather than indexing the previous expression (Puppet's
+			// whitespace rule); indexing a QualifiedReference (a data type or
+			// resource reference) is exempt, as `Integer [1,2]` is still a type.
+			if p.cur(c).Spaced {
+				if _, isRef := e.(*ast.QualifiedReference); !isRef {
+					return e, nil
+				}
+			}
 			e, err = p.parseAccess(c, e)
 		case lexer.Dot:
 			e, err = p.parseMethodCall(c, e)

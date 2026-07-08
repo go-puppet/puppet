@@ -126,7 +126,21 @@ func (lx *lexer) skipSpaceAndComments() error {
 	return nil
 }
 
+// next scans one token, recording whether any whitespace, comment or newline
+// preceded it (Puppet's grammar is whitespace-sensitive for `[`). The token
+// begins wherever skipSpaceAndComments left off, so a start offset past the
+// pre-skip position means something was skipped.
 func (lx *lexer) next() (Token, error) {
+	before := lx.i
+	tok, err := lx.scan()
+	if err != nil {
+		return tok, err
+	}
+	tok.Spaced = tok.Pos.Offset != before
+	return tok, nil
+}
+
+func (lx *lexer) scan() (Token, error) {
 	if err := lx.skipSpaceAndComments(); err != nil {
 		return Token{}, err
 	}
