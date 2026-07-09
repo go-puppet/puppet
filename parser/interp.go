@@ -179,7 +179,9 @@ func embedExpr(inner string, pos ast.Position) (ast.Node, error) {
 		return nil, &Error{Pos: pos, Msg: "empty ${} interpolation"}
 	}
 	src := trimmed
-	if leadingBarewordIsVariable(trimmed) {
+	if leadingBarewordIsVariable(trimmed) || allDigits(trimmed) {
+		// A bare leading word, or a purely numeric body (a `${0}`..`${n}` match
+		// variable), is read as a variable reference.
 		src = "$" + trimmed
 	}
 	return ParseExpression(src)
@@ -214,6 +216,19 @@ func leadingBarewordIsVariable(s string) bool {
 	}
 	// A following '(' means a function call; anything else keeps it a variable.
 	return k >= len(r) || r[k] != '('
+}
+
+// allDigits reports whether s is a non-empty run of ASCII digits.
+func allDigits(s string) bool {
+	if s == "" {
+		return false
+	}
+	for i := 0; i < len(s); i++ {
+		if s[i] < '0' || s[i] > '9' {
+			return false
+		}
+	}
+	return true
 }
 
 func isBareVarStart(rs []rune, i int) bool {

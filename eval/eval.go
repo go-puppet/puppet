@@ -86,6 +86,7 @@ type Evaluator struct {
 	logs         []LogEntry
 	hiera        *hiera.Hiera
 	facts        FactsProvider
+	exported     ExportedStore
 	nodeName     string
 	curContainer string
 }
@@ -118,6 +119,13 @@ func WithHiera(h *hiera.Hiera) Option { return func(e *Evaluator) { e.hiera = h 
 
 // WithNodeName sets the compiling node's name (default "default").
 func WithNodeName(name string) Option { return func(e *Evaluator) { e.nodeName = name } }
+
+// WithExportedStore wires a backing store for exported resources (`@@`), so
+// they can be collected on other nodes with `<<| |>>`. Without one, exported
+// resources are only collectable within the same compilation.
+func WithExportedStore(store ExportedStore) Option {
+	return func(e *Evaluator) { e.exported = store }
+}
 
 // New builds an [Evaluator] with the built-in functions registered.
 func New(opts ...Option) *Evaluator {
@@ -248,11 +256,11 @@ func (e *Evaluator) eval(n ast.Node, s *Scope) (Value, error) {
 	case *ast.Relationship:
 		return e.evalRelationship(x, s)
 	case *ast.ResourceDefaults:
-		return nil, &Error{Pos: x.Pos(), Msg: "resource defaults are staged for v0.2"}
+		return e.evalResourceDefaults(x, s)
 	case *ast.ResourceOverride:
-		return nil, &Error{Pos: x.Pos(), Msg: "resource overrides are staged for v0.2"}
+		return e.evalResourceOverride(x, s)
 	case *ast.Collector:
-		return nil, &Error{Pos: x.Pos(), Msg: "resource collectors are staged for v0.2"}
+		return e.evalCollector(x, s)
 	}
 	return nil, &Error{Pos: n.Pos(), Msg: fmt.Sprintf("cannot evaluate %T", n)}
 }

@@ -24,7 +24,8 @@ func TestEvalErrors(t *testing.T) {
 		// comparison / match
 		{`notice(1 < 'a')`, "cannot compare"},
 		{`notice(5 =~ /x/)`, "requires a string on the left"},
-		{`notice('a' =~ 'b')`, "requires a Regexp or Type"},
+		{`notice('a' =~ 5)`, "requires a Regexp, String or Type"},
+		{`notice('a' =~ '(')`, "invalid regular expression"},
 		// unary
 		{`notice(-'a')`, "cannot negate"},
 		{`$y = *[1]
@@ -110,10 +111,8 @@ class { 'c': x => 'str' }`, "expects"},
 include c`, "missing value for parameter $x of c"},
 		// nodes
 		{`node 'a' { }`, "no node definition matches"},
-		// staged features
-		{`Package { ensure => installed }`, "defaults are staged"},
-		{`File['x'] { mode => '0644' }`, "overrides are staged"},
-		{`File <| |>`, "collectors are staged"},
+		// resource override of an undeclared resource
+		{`File['x'] { mode => '0644' }`, "not in the catalog"},
 	}
 	for _, tc := range cases {
 		got := evalErr(t, tc.src, WithNodeName("nodeX"))

@@ -123,6 +123,7 @@ func (e *Evaluator) evalAttributeOps(ops []ast.AttributeOp, s *Scope) (map[strin
 // declareResource adds a resource to the catalog (or instantiates a defined
 // type), wiring containment and metaparameter edges, and returns its reference.
 func (e *Evaluator) declareResource(typeName, title string, params map[string]any, form ast.ResourceForm, s *Scope, pos ast.Position) (*ResourceRef, error) {
+	params = applyDefaults(params, s.lookupDefaults(capitalizeType(typeName)))
 	if def, ok := e.defines[typeName]; ok {
 		return e.instantiateDefine(def, title, params, form, pos)
 	}
@@ -140,7 +141,18 @@ func (e *Evaluator) declareResource(typeName, title string, params map[string]an
 		return nil, &Error{Pos: pos, Msg: err.Error()}
 	}
 	e.cat.AddEdge(e.container(), ref.String())
+	if err := e.storeExported(res); err != nil {
+		return nil, &Error{Pos: pos, Msg: err.Error()}
+	}
 	return ref, nil
+}
+
+// storeExported records an exported resource in the configured store, if any.
+func (e *Evaluator) storeExported(res *catalog.Resource) error {
+	if !res.Exported || e.exported == nil {
+		return nil
+	}
+	return e.exported.StoreExported(e.nodeName, res)
 }
 
 // metaparams are the relationship metaparameters handled as edges rather than

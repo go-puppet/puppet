@@ -5,6 +5,7 @@
 package eval
 
 import (
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -80,9 +81,9 @@ func (e *Evaluator) evalBinary(x *ast.Binary, s *Scope) (Value, error) {
 	case "<", ">", "<=", ">=":
 		return e.evalCompare(x.Op, l, r, x.Pos())
 	case "=~":
-		return e.evalMatch(l, r, x.Pos())
+		return e.evalMatch(l, r, s, x.Pos())
 	case "!~":
-		m, err := e.evalMatch(l, r, x.Pos())
+		m, err := e.evalMatch(l, r, s, x.Pos())
 		if err != nil {
 			return nil, err
 		}
@@ -112,18 +113,45 @@ func (e *Evaluator) evalCompare(op string, l, r Value, pos ast.Position) (Value,
 	}
 }
 
-func (e *Evaluator) evalMatch(l, r Value, pos ast.Position) (Value, error) {
+func (e *Evaluator) evalMatch(l, r Value, s *Scope, pos ast.Position) (Value, error) {
 	switch m := r.(type) {
 	case *pcore.Regexp:
 		str, ok := normalize(l).(string)
 		if !ok {
 			return nil, &Error{Pos: pos, Msg: "=~ requires a string on the left"}
 		}
-		return m.MatchString(str), nil
+		return e.regexpMatch(m.Source(), str, s, pos)
+	case string:
+		// A string on the right of =~ is treated as a regexp pattern.
+		str, ok := normalize(l).(string)
+		if !ok {
+			return nil, &Error{Pos: pos, Msg: "=~ requires a string on the left"}
+		}
+		return e.regexpMatch(m, str, s, pos)
 	case pcore.Type:
 		return pcore.IsInstance(m, normalize(l)), nil
 	}
-	return nil, &Error{Pos: pos, Msg: "=~ requires a Regexp or Type on the right"}
+	return nil, &Error{Pos: pos, Msg: "=~ requires a Regexp, String or Type on the right"}
+}
+
+// regexpMatch compiles pattern, matches str, and (on success) binds the numbered
+// capture variables $0..$n into scope s, matching Puppet's regex-match scoping.
+func (e *Evaluator) regexpMatch(pattern, str string, s *Scope, pos ast.Position) (Value, error) {
+	re, err := regexp.Compile(pattern)
+	if err != nil {
+		return nil, &Error{Pos: pos, Msg: "invalid regular expression: " + err.Error()}
+	}
+	groups := re.FindStringSubmatch(str)
+	if groups == nil {
+		if s != nil {
+			s.setMatch(nil)
+		}
+		return false, nil
+	}
+	if s != nil {
+		s.setMatch(groups)
+	}
+	return true, nil
 }
 
 func (e *Evaluator) evalIn(l, r Value) Value {
@@ -427,7 +455,11 @@ func (e *Evaluator) matches(test Value, matchNode ast.Node, s *Scope) (bool, err
 		return pcore.IsInstance(mv, normalize(test)), nil
 	case *pcore.Regexp:
 		if str, ok := normalize(test).(string); ok {
-			return mv.MatchString(str), nil
+			r, err := e.regexpMatch(mv.Source(), str, s, matchNode.Pos())
+			if err != nil {
+				return false, err
+			}
+			return r.(bool), nil
 		}
 		return false, nil
 	}
