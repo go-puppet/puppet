@@ -37,10 +37,8 @@ func registerBuiltins(e *Evaluator) {
 	e.funcs["length"] = builtinSize
 	e.funcs["size"] = builtinSize
 	e.funcs["empty"] = builtinEmpty
-	e.funcs["upcase"] = strFn(strings.ToUpper)
-	e.funcs["downcase"] = strFn(strings.ToLower)
-	e.funcs["capitalize"] = strFn(capitalizeWord)
-	e.funcs["strip"] = strFn(strings.TrimSpace)
+	// upcase/downcase/capitalize/strip are registered (with Array support) by
+	// registerStdlibString.
 	e.funcs["split"] = builtinSplit
 	e.funcs["join"] = builtinJoin
 	e.funcs["sprintf"] = builtinSprintf
@@ -182,19 +180,6 @@ func builtinEmpty(_ *Context, args []Value, _ *Block) (Value, error) {
 		return true, nil
 	}
 	return nil, &Error{Msg: "empty() expects a String, Array, Hash or Undef"}
-}
-
-func strFn(f func(string) string) Function {
-	return func(_ *Context, args []Value, _ *Block) (Value, error) {
-		if err := need(args, 1, "string function"); err != nil {
-			return nil, err
-		}
-		s, ok := normalize(args[0]).(string)
-		if !ok {
-			return nil, &Error{Msg: "expected a String argument"}
-		}
-		return f(s), nil
-	}
 }
 
 func capitalizeWord(s string) string {

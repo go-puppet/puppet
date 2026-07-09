@@ -22,13 +22,19 @@ type Block struct {
 // Arity returns the number of declared block parameters.
 func (b *Block) Arity() int { return len(b.node.Params) }
 
-// Call invokes the block with positional arguments.
+// Call invokes the block with positional arguments. A `next()` inside the block
+// unwinds to here and yields its value as the block's result; a `break()`
+// propagates so the surrounding iterator can stop.
 func (b *Block) Call(args ...Value) (Value, error) {
 	ls := newScope(b.scope)
 	if err := b.e.bindParams(ls, b.node.Params, args); err != nil {
 		return nil, err
 	}
-	return b.e.evalBody(b.node.Body, ls)
+	v, err := b.e.evalBody(b.node.Body, ls)
+	if ns, ok := err.(nextSignal); ok {
+		return ns.value, nil
+	}
+	return v, err
 }
 
 func (e *Evaluator) evalCall(x *ast.Call, s *Scope) (Value, error) {
@@ -115,6 +121,9 @@ func (e *Evaluator) callUserFunction(def *ast.FunctionDefinition, args []Value, 
 		return nil, positioned(err, pos)
 	}
 	v, err := e.evalBody(def.Body, fs)
+	if rs, ok := err.(returnSignal); ok {
+		v, err = rs.value, nil
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -180,9 +189,15 @@ func (e *Evaluator) checkParamType(p ast.Parameter, val Value) error {
 	return nil
 }
 
-// typeCast implements the type-constructor call form `Integer("5")`,
-// `String(5)`, `Float("1.5")`, `Boolean(0)`.
+// typeCast implements the type-constructor call form: `Integer("5")`,
+// `String(5)`, `Float("1.5")`, `Boolean(0)`, `Array(x)`, `Hash(pairs)`.
 func (e *Evaluator) typeCast(name string, args []Value, pos ast.Position) (Value, error) {
+	switch name {
+	case "Array":
+		return typeCastArray(args, pos)
+	case "Hash":
+		return typeCastHash(args, pos)
+	}
 	if len(args) != 1 {
 		return nil, &Error{Pos: pos, Msg: name + "() expects one argument"}
 	}
@@ -205,9 +220,45 @@ func (e *Evaluator) typeCast(name string, args []Value, pos ast.Position) (Value
 	case "String":
 		return stringify(v), nil
 	case "Boolean":
-		return truthy(v), nil
+		return builtinAny2Bool(nil, args[:1], nil)
+	case "Numeric":
+		if f, ok := asFloatArg(v); ok {
+			if i, ok2 := v.(int64); ok2 {
+				return i, nil
+			}
+			return f, nil
+		}
+		return nil, &Error{Pos: pos, Msg: "cannot convert " + typeName(v) + " to Numeric"}
 	}
-	return nil, &Error{Pos: pos, Msg: "type constructor " + name + "() is not supported in v0.1"}
+	return nil, &Error{Pos: pos, Msg: "type constructor " + name + "() is not supported for " + typeName(v)}
+}
+
+// typeCastArray implements Array(x[, wrap]): non-arrays become a single-element
+// array (or, for a hash, its [key,value] pairs) unless wrap forces wrapping.
+func typeCastArray(args []Value, pos ast.Position) (Value, error) {
+	if len(args) < 1 || len(args) > 2 {
+		return nil, &Error{Pos: pos, Msg: "Array() expects one or two arguments"}
+	}
+	wrap := len(args) == 2 && truthy(args[1])
+	if wrap {
+		return []any{args[0]}, nil
+	}
+	return toArray(args[0]), nil
+}
+
+// typeCastHash implements Hash(x): an array of [k,v] pairs or a flat [k,v,...]
+// list becomes a hash; a hash is returned unchanged.
+func typeCastHash(args []Value, pos ast.Position) (Value, error) {
+	if len(args) != 1 {
+		return nil, &Error{Pos: pos, Msg: "Hash() expects one argument"}
+	}
+	if h, ok := normalize(args[0]).(map[string]any); ok {
+		return h, nil
+	}
+	if _, ok := normalize(args[0]).([]any); ok {
+		return builtinArrayToHash(nil, args, nil)
+	}
+	return nil, &Error{Pos: pos, Msg: "cannot convert " + typeName(args[0]) + " to Hash"}
 }
 
 func toInt(v Value, pos ast.Position) (Value, error) {

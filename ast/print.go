@@ -217,6 +217,11 @@ func write(b *strings.Builder, n Node) {
 		}
 		writeBody(b, x.Body)
 		b.WriteByte(')')
+	case *PlanDefinition:
+		fmt.Fprintf(b, "(plan %s", x.Name)
+		writeParams(b, x.Params)
+		writeBody(b, x.Body)
+		b.WriteByte(')')
 	case *Relationship:
 		fmt.Fprintf(b, "(%s ", x.Op)
 		write(b, x.Left)

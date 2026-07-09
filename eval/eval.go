@@ -16,6 +16,7 @@ package eval
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/go-hiera/hiera"
 	"github.com/go-pcore/pcore"
@@ -81,11 +82,17 @@ type Evaluator struct {
 	classes      map[string]*ast.ClassDefinition
 	defines      map[string]*ast.DefineDefinition
 	userFuncs    map[string]*ast.FunctionDefinition
+	plans        map[string]*ast.PlanDefinition
+	planExec     PlanExecutor
 	nodes        []*ast.NodeDefinition
 	included     map[string]bool
 	logs         []LogEntry
 	hiera        *hiera.Hiera
 	facts        FactsProvider
+	exported     ExportedStore
+	templates    TemplateLoader
+	erb          ERBRenderer
+	eppStack     []*strings.Builder
 	nodeName     string
 	curContainer string
 }
@@ -119,6 +126,13 @@ func WithHiera(h *hiera.Hiera) Option { return func(e *Evaluator) { e.hiera = h 
 // WithNodeName sets the compiling node's name (default "default").
 func WithNodeName(name string) Option { return func(e *Evaluator) { e.nodeName = name } }
 
+// WithExportedStore wires a backing store for exported resources (`@@`), so
+// they can be collected on other nodes with `<<| |>>`. Without one, exported
+// resources are only collectable within the same compilation.
+func WithExportedStore(store ExportedStore) Option {
+	return func(e *Evaluator) { e.exported = store }
+}
+
 // New builds an [Evaluator] with the built-in functions registered.
 func New(opts ...Option) *Evaluator {
 	e := &Evaluator{
@@ -126,6 +140,7 @@ func New(opts ...Option) *Evaluator {
 		classes:   map[string]*ast.ClassDefinition{},
 		defines:   map[string]*ast.DefineDefinition{},
 		userFuncs: map[string]*ast.FunctionDefinition{},
+		plans:     map[string]*ast.PlanDefinition{},
 		included:  map[string]bool{},
 		nodeName:  "default",
 	}
@@ -135,6 +150,10 @@ func New(opts ...Option) *Evaluator {
 	e.top = newScope(nil)
 	e.cat = catalog.New(e.nodeName)
 	registerBuiltins(e)
+	registerStdlib(e)
+	registerEPPRenderers(e)
+	registerTemplateFns(e)
+	registerPlanFns(e)
 	e.installFacts()
 	return e
 }
@@ -248,11 +267,11 @@ func (e *Evaluator) eval(n ast.Node, s *Scope) (Value, error) {
 	case *ast.Relationship:
 		return e.evalRelationship(x, s)
 	case *ast.ResourceDefaults:
-		return nil, &Error{Pos: x.Pos(), Msg: "resource defaults are staged for v0.2"}
+		return e.evalResourceDefaults(x, s)
 	case *ast.ResourceOverride:
-		return nil, &Error{Pos: x.Pos(), Msg: "resource overrides are staged for v0.2"}
+		return e.evalResourceOverride(x, s)
 	case *ast.Collector:
-		return nil, &Error{Pos: x.Pos(), Msg: "resource collectors are staged for v0.2"}
+		return e.evalCollector(x, s)
 	}
 	return nil, &Error{Pos: n.Pos(), Msg: fmt.Sprintf("cannot evaluate %T", n)}
 }

@@ -31,6 +31,8 @@ func (e *Evaluator) register(n ast.Node) {
 		e.defines[x.Name] = x
 	case *ast.FunctionDefinition:
 		e.userFuncs[x.Name] = x
+	case *ast.PlanDefinition:
+		e.plans[x.Name] = x
 	case *ast.NodeDefinition:
 		e.nodes = append(e.nodes, x)
 	}
@@ -38,7 +40,8 @@ func (e *Evaluator) register(n ast.Node) {
 
 func isDefinition(n ast.Node) bool {
 	switch n.(type) {
-	case *ast.ClassDefinition, *ast.DefineDefinition, *ast.FunctionDefinition, *ast.NodeDefinition:
+	case *ast.ClassDefinition, *ast.DefineDefinition, *ast.FunctionDefinition,
+		*ast.PlanDefinition, *ast.NodeDefinition:
 		return true
 	}
 	return false
@@ -123,6 +126,7 @@ func (e *Evaluator) evalAttributeOps(ops []ast.AttributeOp, s *Scope) (map[strin
 // declareResource adds a resource to the catalog (or instantiates a defined
 // type), wiring containment and metaparameter edges, and returns its reference.
 func (e *Evaluator) declareResource(typeName, title string, params map[string]any, form ast.ResourceForm, s *Scope, pos ast.Position) (*ResourceRef, error) {
+	params = applyDefaults(params, s.lookupDefaults(capitalizeType(typeName)))
 	if def, ok := e.defines[typeName]; ok {
 		return e.instantiateDefine(def, title, params, form, pos)
 	}
@@ -140,7 +144,18 @@ func (e *Evaluator) declareResource(typeName, title string, params map[string]an
 		return nil, &Error{Pos: pos, Msg: err.Error()}
 	}
 	e.cat.AddEdge(e.container(), ref.String())
+	if err := e.storeExported(res); err != nil {
+		return nil, &Error{Pos: pos, Msg: err.Error()}
+	}
 	return ref, nil
+}
+
+// storeExported records an exported resource in the configured store, if any.
+func (e *Evaluator) storeExported(res *catalog.Resource) error {
+	if !res.Exported || e.exported == nil {
+		return nil
+	}
+	return e.exported.StoreExported(e.nodeName, res)
 }
 
 // metaparams are the relationship metaparameters handled as edges rather than
@@ -447,6 +462,21 @@ func capitalizeType(name string) string {
 		}
 		r := []rune(seg)
 		r[0] = []rune(strings.ToUpper(string(r[0])))[0]
+		segs[i] = string(r)
+	}
+	return strings.Join(segs, "::")
+}
+
+// lowerFirstSegments lower-cases the first rune of each `::` segment, the
+// inverse of capitalizeType (`Foo::Bar` -> `foo::bar`).
+func lowerFirstSegments(name string) string {
+	segs := strings.Split(name, "::")
+	for i, seg := range segs {
+		if seg == "" {
+			continue
+		}
+		r := []rune(seg)
+		r[0] = []rune(strings.ToLower(string(r[0])))[0]
 		segs[i] = string(r)
 	}
 	return strings.Join(segs, "::")

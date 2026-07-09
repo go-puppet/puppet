@@ -5,6 +5,7 @@
 package eval
 
 import (
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -80,9 +81,9 @@ func (e *Evaluator) evalBinary(x *ast.Binary, s *Scope) (Value, error) {
 	case "<", ">", "<=", ">=":
 		return e.evalCompare(x.Op, l, r, x.Pos())
 	case "=~":
-		return e.evalMatch(l, r, x.Pos())
+		return e.evalMatch(l, r, s, x.Pos())
 	case "!~":
-		m, err := e.evalMatch(l, r, x.Pos())
+		m, err := e.evalMatch(l, r, s, x.Pos())
 		if err != nil {
 			return nil, err
 		}
@@ -112,18 +113,45 @@ func (e *Evaluator) evalCompare(op string, l, r Value, pos ast.Position) (Value,
 	}
 }
 
-func (e *Evaluator) evalMatch(l, r Value, pos ast.Position) (Value, error) {
+func (e *Evaluator) evalMatch(l, r Value, s *Scope, pos ast.Position) (Value, error) {
 	switch m := r.(type) {
 	case *pcore.Regexp:
 		str, ok := normalize(l).(string)
 		if !ok {
 			return nil, &Error{Pos: pos, Msg: "=~ requires a string on the left"}
 		}
-		return m.MatchString(str), nil
+		return e.regexpMatch(m.Source(), str, s, pos)
+	case string:
+		// A string on the right of =~ is treated as a regexp pattern.
+		str, ok := normalize(l).(string)
+		if !ok {
+			return nil, &Error{Pos: pos, Msg: "=~ requires a string on the left"}
+		}
+		return e.regexpMatch(m, str, s, pos)
 	case pcore.Type:
 		return pcore.IsInstance(m, normalize(l)), nil
 	}
-	return nil, &Error{Pos: pos, Msg: "=~ requires a Regexp or Type on the right"}
+	return nil, &Error{Pos: pos, Msg: "=~ requires a Regexp, String or Type on the right"}
+}
+
+// regexpMatch compiles pattern, matches str, and (on success) binds the numbered
+// capture variables $0..$n into scope s, matching Puppet's regex-match scoping.
+func (e *Evaluator) regexpMatch(pattern, str string, s *Scope, pos ast.Position) (Value, error) {
+	re, err := regexp.Compile(pattern)
+	if err != nil {
+		return nil, &Error{Pos: pos, Msg: "invalid regular expression: " + err.Error()}
+	}
+	return matchAndCapture(re, str, s), nil
+}
+
+// matchAndCapture runs re against str and, when it matches, binds the numbered
+// capture variables $0..$n into scope s (clearing them on a non-match).
+func matchAndCapture(re *regexp.Regexp, str string, s *Scope) bool {
+	groups := re.FindStringSubmatch(str)
+	if s != nil {
+		s.setMatch(groups)
+	}
+	return groups != nil
 }
 
 func (e *Evaluator) evalIn(l, r Value) Value {
@@ -229,7 +257,9 @@ func intArith(op string, l, r int64, pos ast.Position) (Value, error) {
 
 func (e *Evaluator) evalAssignment(x *ast.Assignment, s *Scope) (Value, error) {
 	if x.Op != "=" {
-		return nil, &Error{Pos: x.Pos(), Msg: "append assignment (" + x.Op + ") is not supported"}
+		// The `+=` and `-=` append-assignment operators were removed in Puppet 4;
+		// only plain `=` assignment is a valid Puppet expression.
+		return nil, &Error{Pos: x.Pos(), Msg: "the " + x.Op + " operator is not supported in Puppet (removed in Puppet 4); use $x = $x + ... instead"}
 	}
 	v, err := e.eval(x.Value, s)
 	if err != nil {
@@ -427,7 +457,9 @@ func (e *Evaluator) matches(test Value, matchNode ast.Node, s *Scope) (bool, err
 		return pcore.IsInstance(mv, normalize(test)), nil
 	case *pcore.Regexp:
 		if str, ok := normalize(test).(string); ok {
-			return mv.MatchString(str), nil
+			// mv is already compiled, so recompiling its source cannot fail.
+			re, _ := regexp.Compile(mv.Source())
+			return matchAndCapture(re, str, s), nil
 		}
 		return false, nil
 	}

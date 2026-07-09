@@ -18,6 +18,13 @@ func requireBlock(block *Block, name string) (*Block, error) {
 // hashes, invoking fn for each. It errors on non-iterable receivers.
 func iterPairs(v Value, fn func(a, b Value) error) error {
 	switch c := normalize(v).(type) {
+	case int64:
+		for i := int64(0); i < c; i++ {
+			if err := fn(i, i); err != nil {
+				return err
+			}
+		}
+		return nil
 	case []any:
 		for i, el := range c {
 			if err := fn(int64(i), el); err != nil {
@@ -61,10 +68,22 @@ func builtinEach(_ *Context, args []Value, block *Block) (Value, error) {
 		_, e := callPair(b, k, v, isHash)
 		return e
 	})
+	if bv, ok := breakValue(err); ok {
+		return bv, nil
+	}
 	if err != nil {
 		return nil, err
 	}
 	return args[0], nil
+}
+
+// breakValue reports whether err is a break() jump and, if so, the value passed
+// to break() — which becomes the whole iterative function's result, per Puppet.
+func breakValue(err error) (Value, bool) {
+	if bs, ok := err.(breakSignal); ok {
+		return bs.value, true
+	}
+	return nil, false
 }
 
 func builtinMap(_ *Context, args []Value, block *Block) (Value, error) {
@@ -85,6 +104,9 @@ func builtinMap(_ *Context, args []Value, block *Block) (Value, error) {
 		out = append(out, r)
 		return nil
 	})
+	if bv, ok := breakValue(err); ok {
+		return bv, nil
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -103,6 +125,9 @@ func builtinFilter(_ *Context, args []Value, block *Block) (Value, error) {
 		out := map[string]any{}
 		for _, k := range sortedKeys(m) {
 			keep, e := callPair(b, k, m[k], true)
+			if bv, ok := breakValue(e); ok {
+				return bv, nil
+			}
 			if e != nil {
 				return nil, e
 			}
@@ -123,6 +148,9 @@ func builtinFilter(_ *Context, args []Value, block *Block) (Value, error) {
 		}
 		return nil
 	})
+	if bv, ok := breakValue(err); ok {
+		return bv, nil
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -154,6 +182,9 @@ func builtinReduce(_ *Context, args []Value, block *Block) (Value, error) {
 	}
 	for _, it := range items[start:] {
 		memo, err = b.Call(memo, it)
+		if bv, ok := breakValue(err); ok {
+			return bv, nil
+		}
 		if err != nil {
 			return nil, err
 		}
@@ -207,6 +238,12 @@ func builtinSlice(_ *Context, args []Value, block *Block) (Value, error) {
 // (by sorted key) for the fold/slice iterators.
 func elementsOf(v Value) ([]Value, error) {
 	switch c := normalize(v).(type) {
+	case int64:
+		out := make([]Value, 0, c)
+		for i := int64(0); i < c; i++ {
+			out = append(out, i)
+		}
+		return out, nil
 	case []any:
 		return c, nil
 	case map[string]any:
