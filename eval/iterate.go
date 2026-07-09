@@ -18,6 +18,13 @@ func requireBlock(block *Block, name string) (*Block, error) {
 // hashes, invoking fn for each. It errors on non-iterable receivers.
 func iterPairs(v Value, fn func(a, b Value) error) error {
 	switch c := normalize(v).(type) {
+	case int64:
+		for i := int64(0); i < c; i++ {
+			if err := fn(i, i); err != nil {
+				return err
+			}
+		}
+		return nil
 	case []any:
 		for i, el := range c {
 			if err := fn(int64(i), el); err != nil {
@@ -207,6 +214,12 @@ func builtinSlice(_ *Context, args []Value, block *Block) (Value, error) {
 // (by sorted key) for the fold/slice iterators.
 func elementsOf(v Value) ([]Value, error) {
 	switch c := normalize(v).(type) {
+	case int64:
+		out := make([]Value, 0, c)
+		for i := int64(0); i < c; i++ {
+			out = append(out, i)
+		}
+		return out, nil
 	case []any:
 		return c, nil
 	case map[string]any:

@@ -16,6 +16,7 @@ package eval
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/go-hiera/hiera"
 	"github.com/go-pcore/pcore"
@@ -87,6 +88,9 @@ type Evaluator struct {
 	hiera        *hiera.Hiera
 	facts        FactsProvider
 	exported     ExportedStore
+	templates    TemplateLoader
+	erb          ERBRenderer
+	eppStack     []*strings.Builder
 	nodeName     string
 	curContainer string
 }
@@ -143,6 +147,9 @@ func New(opts ...Option) *Evaluator {
 	e.top = newScope(nil)
 	e.cat = catalog.New(e.nodeName)
 	registerBuiltins(e)
+	registerStdlib(e)
+	registerEPPRenderers(e)
+	registerTemplateFns(e)
 	e.installFacts()
 	return e
 }

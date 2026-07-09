@@ -71,6 +71,27 @@ func ParseExpression(src string) (ast.Node, error) {
 	return n, nil
 }
 
+// ParseParameters parses a bare comma-separated parameter list (the text that
+// appears between the pipes of a lambda or an EPP parameter tag, e.g.
+// `String $x, Integer $n = 3`). It is used by callers that build a parameter
+// scope outside a full manifest, such as the EPP template renderer.
+func ParseParameters(src string) ([]ast.Parameter, error) {
+	toks, err := lexer.Lex(src)
+	if err != nil {
+		return nil, err
+	}
+	p := &parser{toks: toks}
+	c := &cursor{}
+	params, err := p.parseParams(c, lexer.EOF)
+	if err != nil {
+		return nil, err
+	}
+	if p.kind(c) != lexer.EOF {
+		return nil, p.errAt(c, "unexpected %s in parameter list", p.cur(c).Kind)
+	}
+	return params, nil
+}
+
 // --- cursor helpers -------------------------------------------------------
 
 func (p *parser) cur(c *cursor) lexer.Token { return p.toks[c.i] }
