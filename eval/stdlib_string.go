@@ -40,6 +40,7 @@ func registerStdlibString(e *Evaluator) {
 	e.funcs["versioncmp"] = builtinVersioncmp
 	e.funcs["regsubst"] = builtinRegsubst
 	e.funcs["match"] = builtinMatch
+	e.funcs["str2resource"] = builtinStrToResource
 	e.funcs["stdlib::str2resource"] = builtinStrToResource
 }
 

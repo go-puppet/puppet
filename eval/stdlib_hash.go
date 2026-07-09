@@ -208,7 +208,7 @@ func builtinConvertTo(_ *Context, args []Value, _ *Block) (Value, error) {
 		}
 		return nil, &Error{Msg: "convert_to(): cannot convert to Hash"}
 	case "Boolean":
-		return truthy(args[0]), nil
+		return builtinAny2Bool(nil, args[:1], nil)
 	}
 	return nil, &Error{Msg: "convert_to(): unsupported target type " + t.Name()}
 }
