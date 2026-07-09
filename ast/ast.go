@@ -355,6 +355,16 @@ type FunctionDefinition struct {
 	Body       []Node
 }
 
+// PlanDefinition is a Bolt `plan name(params) { body }`. A plan is like a
+// function whose body runs orchestration (run_task/apply/…) rather than
+// producing a catalog.
+type PlanDefinition struct {
+	Base
+	Name   string
+	Params []Parameter
+	Body   []Node
+}
+
 // --- relationships --------------------------------------------------------
 
 // Relationship is a chaining operator between two references: `->`, `~>`,

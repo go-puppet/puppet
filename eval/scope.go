@@ -53,6 +53,23 @@ func (s *Scope) set(name string, v Value) error {
 // setForce binds name unconditionally (used for injected parameters/facts).
 func (s *Scope) setForce(name string, v Value) { s.vars[name] = v }
 
+// snapshot returns all variables visible from this scope up the parent chain,
+// with nearer bindings winning. Used to seed a sub-evaluator (e.g. an apply
+// block) with the caller's locals.
+func (s *Scope) snapshot() map[string]Value {
+	out := map[string]Value{}
+	var chain []*Scope
+	for cur := s; cur != nil; cur = cur.parent {
+		chain = append(chain, cur)
+	}
+	for i := len(chain) - 1; i >= 0; i-- {
+		for k, v := range chain[i].vars {
+			out[k] = v
+		}
+	}
+	return out
+}
+
 // setMatch records the numbered match variables ($0..$n) produced by a `=~`
 // evaluated in this scope. groups is the FindStringSubmatch result (or nil to
 // clear them on a failed match).

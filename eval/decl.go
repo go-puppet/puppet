@@ -31,6 +31,8 @@ func (e *Evaluator) register(n ast.Node) {
 		e.defines[x.Name] = x
 	case *ast.FunctionDefinition:
 		e.userFuncs[x.Name] = x
+	case *ast.PlanDefinition:
+		e.plans[x.Name] = x
 	case *ast.NodeDefinition:
 		e.nodes = append(e.nodes, x)
 	}
@@ -38,7 +40,8 @@ func (e *Evaluator) register(n ast.Node) {
 
 func isDefinition(n ast.Node) bool {
 	switch n.(type) {
-	case *ast.ClassDefinition, *ast.DefineDefinition, *ast.FunctionDefinition, *ast.NodeDefinition:
+	case *ast.ClassDefinition, *ast.DefineDefinition, *ast.FunctionDefinition,
+		*ast.PlanDefinition, *ast.NodeDefinition:
 		return true
 	}
 	return false

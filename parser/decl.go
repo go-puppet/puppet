@@ -318,6 +318,23 @@ func (p *parser) parseFunctionDef(c *cursor) (ast.Node, error) {
 	return &ast.FunctionDefinition{Base: base(pos), Name: name, Params: params, ReturnType: rtype, Body: body}, nil
 }
 
+func (p *parser) parsePlanDef(c *cursor) (ast.Node, error) {
+	pos := p.advance(c).Pos
+	name, err := p.defName(c)
+	if err != nil {
+		return nil, err
+	}
+	params, err := p.parseParenParams(c)
+	if err != nil {
+		return nil, err
+	}
+	body, err := p.parseBlock(c)
+	if err != nil {
+		return nil, err
+	}
+	return &ast.PlanDefinition{Base: base(pos), Name: name, Params: params, Body: body}, nil
+}
+
 // parseDataType parses a data-type expression: a [ast.QualifiedReference]
 // followed by any number of `[...]` parameter lists (e.g. `Optional[String]`,
 // `Hash[String, Integer]`). Unlike the general postfix parser it never treats

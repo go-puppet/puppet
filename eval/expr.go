@@ -257,7 +257,9 @@ func intArith(op string, l, r int64, pos ast.Position) (Value, error) {
 
 func (e *Evaluator) evalAssignment(x *ast.Assignment, s *Scope) (Value, error) {
 	if x.Op != "=" {
-		return nil, &Error{Pos: x.Pos(), Msg: "append assignment (" + x.Op + ") is not supported"}
+		// The `+=` and `-=` append-assignment operators were removed in Puppet 4;
+		// only plain `=` assignment is a valid Puppet expression.
+		return nil, &Error{Pos: x.Pos(), Msg: "the " + x.Op + " operator is not supported in Puppet (removed in Puppet 4); use $x = $x + ... instead"}
 	}
 	v, err := e.eval(x.Value, s)
 	if err != nil {

@@ -178,6 +178,8 @@ func (p *parser) parseStatement(c *cursor) (ast.Node, error) {
 		return p.parseNode(c)
 	case lexer.KwFunction:
 		return p.parseFunctionDef(c)
+	case lexer.KwPlan:
+		return p.parsePlanDef(c)
 	}
 	e, err := p.parseExpr(c)
 	if err != nil {
@@ -480,11 +482,32 @@ func (p *parser) parseCall(c *cursor, functor ast.Node) (ast.Node, error) {
 	if _, err := p.expect(c, lexer.RParen); err != nil {
 		return nil, err
 	}
-	lambda, err := p.maybeLambda(c)
+	lambda, err := p.callLambda(c, functor)
 	if err != nil {
 		return nil, err
 	}
 	return &ast.Call{Base: base(pos), Functor: functor, Args: args, Lambda: lambda, RVal: true}, nil
+}
+
+// callLambda parses a trailing block for a call. It accepts the usual
+// `|params| { }` lambda, and — for the Bolt `apply` function — the pipeless
+// `apply($targets) { <resources> }` block form.
+func (p *parser) callLambda(c *cursor, functor ast.Node) (*ast.Lambda, error) {
+	if p.kind(c) == lexer.LBrace && isApplyFunctor(functor) {
+		pos := p.cur(c).Pos
+		body, err := p.parseBlock(c)
+		if err != nil {
+			return nil, err
+		}
+		return &ast.Lambda{Base: base(pos), Body: body}, nil
+	}
+	return p.maybeLambda(c)
+}
+
+// isApplyFunctor reports whether functor is the bare name `apply`.
+func isApplyFunctor(functor ast.Node) bool {
+	qn, ok := functor.(*ast.QualifiedName)
+	return ok && qn.Value == "apply"
 }
 
 // parseExprList parses a comma-separated expression list up to (but not

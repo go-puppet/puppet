@@ -46,6 +46,7 @@ const (
 	KwNode
 	KwFunction
 	KwType
+	KwPlan
 
 	// punctuation
 	LBrace
@@ -110,7 +111,7 @@ var kindName = [...]string{
 	KwIf: "if", KwElsif: "elsif", KwElse: "else", KwUnless: "unless",
 	KwCase: "case", KwAnd: "and", KwOr: "or", KwIn: "in",
 	KwClass: "class", KwDefine: "define", KwInherits: "inherits",
-	KwNode: "node", KwFunction: "function", KwType: "type",
+	KwNode: "node", KwFunction: "function", KwType: "type", KwPlan: "plan",
 	LBrace: "{", RBrace: "}", LBrack: "[", RBrack: "]",
 	LParen: "(", RParen: ")", Comma: ",", Semi: ";", Colon: ":",
 	Dot: ".", Query: "?",
@@ -143,5 +144,5 @@ var keywords = map[string]Kind{
 	"if": KwIf, "elsif": KwElsif, "else": KwElse, "unless": KwUnless,
 	"case": KwCase, "and": KwAnd, "or": KwOr, "in": KwIn,
 	"class": KwClass, "define": KwDefine, "inherits": KwInherits,
-	"node": KwNode, "function": KwFunction,
+	"node": KwNode, "function": KwFunction, "plan": KwPlan,
 }

@@ -82,6 +82,8 @@ type Evaluator struct {
 	classes      map[string]*ast.ClassDefinition
 	defines      map[string]*ast.DefineDefinition
 	userFuncs    map[string]*ast.FunctionDefinition
+	plans        map[string]*ast.PlanDefinition
+	planExec     PlanExecutor
 	nodes        []*ast.NodeDefinition
 	included     map[string]bool
 	logs         []LogEntry
@@ -138,6 +140,7 @@ func New(opts ...Option) *Evaluator {
 		classes:   map[string]*ast.ClassDefinition{},
 		defines:   map[string]*ast.DefineDefinition{},
 		userFuncs: map[string]*ast.FunctionDefinition{},
+		plans:     map[string]*ast.PlanDefinition{},
 		included:  map[string]bool{},
 		nodeName:  "default",
 	}
@@ -150,6 +153,7 @@ func New(opts ...Option) *Evaluator {
 	registerStdlib(e)
 	registerEPPRenderers(e)
 	registerTemplateFns(e)
+	registerPlanFns(e)
 	e.installFacts()
 	return e
 }

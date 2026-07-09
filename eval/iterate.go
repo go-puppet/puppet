@@ -68,10 +68,22 @@ func builtinEach(_ *Context, args []Value, block *Block) (Value, error) {
 		_, e := callPair(b, k, v, isHash)
 		return e
 	})
+	if bv, ok := breakValue(err); ok {
+		return bv, nil
+	}
 	if err != nil {
 		return nil, err
 	}
 	return args[0], nil
+}
+
+// breakValue reports whether err is a break() jump and, if so, the value passed
+// to break() — which becomes the whole iterative function's result, per Puppet.
+func breakValue(err error) (Value, bool) {
+	if bs, ok := err.(breakSignal); ok {
+		return bs.value, true
+	}
+	return nil, false
 }
 
 func builtinMap(_ *Context, args []Value, block *Block) (Value, error) {
@@ -92,6 +104,9 @@ func builtinMap(_ *Context, args []Value, block *Block) (Value, error) {
 		out = append(out, r)
 		return nil
 	})
+	if bv, ok := breakValue(err); ok {
+		return bv, nil
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -110,6 +125,9 @@ func builtinFilter(_ *Context, args []Value, block *Block) (Value, error) {
 		out := map[string]any{}
 		for _, k := range sortedKeys(m) {
 			keep, e := callPair(b, k, m[k], true)
+			if bv, ok := breakValue(e); ok {
+				return bv, nil
+			}
 			if e != nil {
 				return nil, e
 			}
@@ -130,6 +148,9 @@ func builtinFilter(_ *Context, args []Value, block *Block) (Value, error) {
 		}
 		return nil
 	})
+	if bv, ok := breakValue(err); ok {
+		return bv, nil
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -161,6 +182,9 @@ func builtinReduce(_ *Context, args []Value, block *Block) (Value, error) {
 	}
 	for _, it := range items[start:] {
 		memo, err = b.Call(memo, it)
+		if bv, ok := breakValue(err); ok {
+			return bv, nil
+		}
 		if err != nil {
 			return nil, err
 		}
