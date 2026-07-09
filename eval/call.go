@@ -220,7 +220,7 @@ func (e *Evaluator) typeCast(name string, args []Value, pos ast.Position) (Value
 	case "String":
 		return stringify(v), nil
 	case "Boolean":
-		return truthy(v), nil
+		return builtinAny2Bool(nil, args[:1], nil)
 	case "Numeric":
 		if f, ok := asFloatArg(v); ok {
 			if i, ok2 := v.(int64); ok2 {

@@ -137,7 +137,8 @@ func TestBuiltins(t *testing.T) {
 		{`notice(Float('1.5'))`, "1.5"},
 		{`notice(Float(3))`, "3"},
 		{`notice(String(5))`, "5"},
-		{`notice(Boolean('x'))`, "true"},
+		{`notice(Boolean('yes'))`, "true"},
+		{`notice(Boolean('false'))`, "false"},
 		{`notice('abc'.upcase)`, "ABC"},
 		{`notice([3,1,2].reverse)`, "[2, 1, 3]"},
 		// iteration
