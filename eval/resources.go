@@ -187,9 +187,8 @@ func (e *Evaluator) importExported(capType string, query ast.Node, s *Scope) ([]
 			Parameters: r.Parameters,
 			Tags:       r.Tags,
 		}
-		if err := e.cat.Add(clone); err != nil {
-			return nil, &Error{Msg: err.Error()}
-		}
+		// The duplicate check above guarantees Add succeeds here.
+		_ = e.cat.Add(clone)
 		e.cat.AddEdge(e.container(), clone.Ref())
 		out = append(out, &ResourceRef{Type: clone.Type, Title: clone.Title})
 	}

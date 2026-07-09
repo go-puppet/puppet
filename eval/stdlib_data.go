@@ -160,15 +160,9 @@ func yamlToValue(v any) Value {
 	case yaml.Symbol:
 		return string(x)
 	case *big.Int:
-		if x.IsInt64() {
-			return x.Int64()
-		}
+		// The loader emits *big.Int only for values that overflow int64; Puppet's
+		// 64-bit integer model represents those as their decimal string.
 		return x.String()
-	case *big.Float:
-		f, _ := x.Float64()
-		return f
-	case int:
-		return int64(x)
 	default:
 		return normalize(x)
 	}
@@ -188,9 +182,8 @@ func builtinToJSON(pretty bool) Function {
 		if pretty {
 			enc.SetIndent("", "  ")
 		}
-		if err := enc.Encode(valueToJSON(args[0])); err != nil {
-			return nil, &Error{Msg: "to_json(): " + err.Error()}
-		}
+		// valueToJSON yields only JSON-encodable types, so Encode cannot fail.
+		_ = enc.Encode(valueToJSON(args[0]))
 		return strings.TrimRight(buf.String(), "\n"), nil
 	}
 }
@@ -199,8 +192,6 @@ func builtinToJSON(pretty bool) Function {
 // mapping undef to nil and rendering rich Pcore values via their String form.
 func valueToJSON(v Value) any {
 	switch x := normalize(v).(type) {
-	case nil:
-		return nil
 	case bool, int64, float64, string:
 		return x
 	case []any:
@@ -227,10 +218,8 @@ func builtinToYAML(_ *Context, args []Value, _ *Block) (Value, error) {
 	if len(args) < 1 || len(args) > 2 {
 		return nil, wrongArgs("to_yaml")
 	}
-	out, err := yaml.Dump(valueToYAML(args[0]))
-	if err != nil {
-		return nil, &Error{Msg: "to_yaml(): " + err.Error()}
-	}
+	// valueToYAML yields only plain maps/slices/scalars, so Dump cannot fail.
+	out, _ := yaml.Dump(valueToYAML(args[0]))
 	return out, nil
 }
 

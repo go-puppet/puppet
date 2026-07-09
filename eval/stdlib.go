@@ -5,6 +5,8 @@
 package eval
 
 import (
+	"strconv"
+
 	"github.com/go-pcore/pcore"
 )
 
@@ -52,18 +54,9 @@ func argHash(args []Value, i int, fn string) (map[string]any, error) {
 	return h, nil
 }
 
-func ordinal(i int) string {
-	switch i {
-	case 0:
-		return "1"
-	case 1:
-		return "2"
-	case 2:
-		return "3"
-	default:
-		return "n"
-	}
-}
+// ordinal renders a zero-based argument index as its 1-based position, for
+// error messages ("argument 1 must be a String").
+func ordinal(i int) string { return strconv.Itoa(i + 1) }
 
 // wrongArgs builds a standard arity error.
 func wrongArgs(fn string) error { return &Error{Msg: fn + "(): wrong number of arguments"} }

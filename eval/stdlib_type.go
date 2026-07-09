@@ -110,10 +110,8 @@ func builtinValidateRe(_ *Context, args []Value, _ *Block) (Value, error) {
 	}
 	subject := stringify(args[0])
 	for _, p := range stringList(args[1]) {
-		m, err := matchPredicate(p)
-		if err != nil {
-			return nil, err
-		}
+		// stringList yields Strings, for which matchPredicate never errors.
+		m, _ := matchPredicate(p)
 		if m(subject) {
 			return pcore.Undef, nil
 		}

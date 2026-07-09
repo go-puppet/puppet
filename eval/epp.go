@@ -131,13 +131,17 @@ func compileEPP(tmpl string) (string, []ast.Parameter, error) {
 	}
 	var params []ast.Parameter
 	var b strings.Builder
-	for i, seg := range segs {
+	sawContent := false // any non-whitespace output/code seen before a param tag
+	for _, seg := range segs {
 		switch seg.kind {
 		case segText:
 			if seg.text != "" {
 				b.WriteString("__epp_render(")
 				b.WriteString(quoteSingle(seg.text))
 				b.WriteString(")\n")
+			}
+			if strings.TrimSpace(seg.text) != "" {
+				sawContent = true
 			}
 		case segExpr:
 			body := strings.TrimSpace(seg.text)
@@ -147,10 +151,11 @@ func compileEPP(tmpl string) (string, []ast.Parameter, error) {
 			b.WriteString("__epp_render(")
 			b.WriteString(body)
 			b.WriteString(")\n")
+			sawContent = true
 		case segCode:
 			body := strings.TrimSpace(seg.text)
 			if p, ok := parseParamTag(body); ok {
-				if i != firstNonEmptyText(segs) {
+				if sawContent {
 					return "", nil, &Error{Msg: "parameter tag must be the first tag in the template"}
 				}
 				pp, perr := parser.ParseParameters(p)
@@ -158,28 +163,17 @@ func compileEPP(tmpl string) (string, []ast.Parameter, error) {
 					return "", nil, perr
 				}
 				params = pp
+				sawContent = true
 				continue
 			}
 			b.WriteString(body)
 			b.WriteString("\n")
+			sawContent = true
 		case segComment:
 			// dropped
 		}
 	}
 	return b.String(), params, nil
-}
-
-// firstNonEmptyText returns the index of the first segment that is not empty
-// literal text, so the parameter-tag position check ignores leading whitespace
-// text.
-func firstNonEmptyText(segs []eppSeg) int {
-	for i, s := range segs {
-		if s.kind == segText && strings.TrimSpace(s.text) == "" {
-			continue
-		}
-		return i
-	}
-	return -1
 }
 
 // parseParamTag reports whether a `<% ... %>` body is a parameter tag `|...|`
@@ -249,6 +243,7 @@ func classifyTag(tmpl string, i int) (segKind, int) {
 func findTagEnd(tmpl string, start int) (end int, trimRight bool, err error) {
 	for k := start; k < len(tmpl); k++ {
 		if strings.HasPrefix(tmpl[k:], "%%>") {
+			k += 2 // skip the whole escaped %%> (loop k++ adds the third byte)
 			continue
 		}
 		if strings.HasPrefix(tmpl[k:], "-%>") {

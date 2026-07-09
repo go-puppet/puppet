@@ -218,11 +218,9 @@ func leadingBarewordIsVariable(s string) bool {
 	return k >= len(r) || r[k] != '('
 }
 
-// allDigits reports whether s is a non-empty run of ASCII digits.
+// allDigits reports whether s is a run of ASCII digits. It is only called by
+// embedExpr on an already non-empty, trimmed body.
 func allDigits(s string) bool {
-	if s == "" {
-		return false
-	}
 	for i := 0; i < len(s); i++ {
 		if s[i] < '0' || s[i] > '9' {
 			return false

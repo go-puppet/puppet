@@ -559,11 +559,8 @@ func builtinMatch(_ *Context, args []Value, _ *Block) (Value, error) {
 func matchPredicate(pattern Value) (func(string) bool, error) {
 	switch p := normalize(pattern).(type) {
 	case *pcore.Regexp:
-		re, err := regexp.Compile(p.Source())
-		if err != nil {
-			return nil, &Error{Msg: err.Error()}
-		}
-		return re.MatchString, nil
+		// pcore.Regexp is already compiled, so it cannot fail here.
+		return p.MatchString, nil
 	case string:
 		re, err := regexp.Compile(p)
 		if err != nil {

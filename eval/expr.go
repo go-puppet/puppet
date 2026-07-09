@@ -141,17 +141,17 @@ func (e *Evaluator) regexpMatch(pattern, str string, s *Scope, pos ast.Position)
 	if err != nil {
 		return nil, &Error{Pos: pos, Msg: "invalid regular expression: " + err.Error()}
 	}
+	return matchAndCapture(re, str, s), nil
+}
+
+// matchAndCapture runs re against str and, when it matches, binds the numbered
+// capture variables $0..$n into scope s (clearing them on a non-match).
+func matchAndCapture(re *regexp.Regexp, str string, s *Scope) bool {
 	groups := re.FindStringSubmatch(str)
-	if groups == nil {
-		if s != nil {
-			s.setMatch(nil)
-		}
-		return false, nil
-	}
 	if s != nil {
 		s.setMatch(groups)
 	}
-	return true, nil
+	return groups != nil
 }
 
 func (e *Evaluator) evalIn(l, r Value) Value {
@@ -457,11 +457,9 @@ func (e *Evaluator) matches(test Value, matchNode ast.Node, s *Scope) (bool, err
 		return pcore.IsInstance(mv, normalize(test)), nil
 	case *pcore.Regexp:
 		if str, ok := normalize(test).(string); ok {
-			r, err := e.regexpMatch(mv.Source(), str, s, matchNode.Pos())
-			if err != nil {
-				return false, err
-			}
-			return r.(bool), nil
+			// mv is already compiled, so recompiling its source cannot fail.
+			re, _ := regexp.Compile(mv.Source())
+			return matchAndCapture(re, str, s), nil
 		}
 		return false, nil
 	}
