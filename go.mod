@@ -8,4 +8,4 @@ require (
 	github.com/go-pcore/pcore v0.0.0-20260708052910-1416bf219e47
 )
 
-require github.com/go-ruby-yaml/yaml v0.0.0-20260706120500-56d458798003 // indirect
+require github.com/go-ruby-yaml/yaml v0.0.0-20260706120500-56d458798003

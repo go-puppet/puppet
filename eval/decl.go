@@ -463,3 +463,18 @@ func capitalizeType(name string) string {
 	}
 	return strings.Join(segs, "::")
 }
+
+// lowerFirstSegments lower-cases the first rune of each `::` segment, the
+// inverse of capitalizeType (`Foo::Bar` -> `foo::bar`).
+func lowerFirstSegments(name string) string {
+	segs := strings.Split(name, "::")
+	for i, seg := range segs {
+		if seg == "" {
+			continue
+		}
+		r := []rune(seg)
+		r[0] = []rune(strings.ToLower(string(r[0])))[0]
+		segs[i] = string(r)
+	}
+	return strings.Join(segs, "::")
+}
