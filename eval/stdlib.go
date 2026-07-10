@@ -23,6 +23,10 @@ func registerStdlib(e *Evaluator) {
 	registerStdlibType(e)
 	registerStdlibData(e)
 	registerStdlibMisc(e)
+	registerStdlibDigest(e)
+	registerStdlibRandom(e)
+	registerStdlibTime(e)
+	registerStdlibEncode(e)
 }
 
 // --- small argument helpers -----------------------------------------------

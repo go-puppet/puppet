@@ -164,6 +164,14 @@ func sortedKeys(m map[string]any) []string {
 	return keys
 }
 
+// asInt64 returns v as an int64 if it is an Integer value.
+func asInt64(v Value) (int64, bool) {
+	if i, ok := normalize(v).(int64); ok {
+		return i, true
+	}
+	return 0, false
+}
+
 // asFloat returns v as a float64 if it is numeric.
 func asFloat(v Value) (float64, bool) {
 	switch x := normalize(v).(type) {

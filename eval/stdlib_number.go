@@ -19,7 +19,7 @@ func registerStdlibNumber(e *Evaluator) {
 	e.funcs["clamp"] = builtinClamp
 	e.funcs["sum"] = builtinSum
 	e.funcs["to_bytes"] = builtinToBytes
-	e.funcs["pw_hash"] = builtinPwHashStub
+	e.funcs["pw_hash"] = builtinPwHash
 }
 
 // numFn1 wraps a float→float transform that returns an Integer result (ceiling,
@@ -184,10 +184,4 @@ func parseBytes(s string) (Value, error) {
 		return nil, &Error{Msg: "to_bytes(): unknown unit '" + unit + "'"}
 	}
 	return int64(num * m), nil
-}
-
-// builtinPwHashStub is a documented stub: real pw_hash needs crypt(3) hashing
-// which is out of scope for the language core; a host may override it.
-func builtinPwHashStub(_ *Context, args []Value, _ *Block) (Value, error) {
-	return nil, &Error{Msg: "pw_hash() is not implemented in the pure-Go core; register a custom implementation via RegisterFunction"}
 }

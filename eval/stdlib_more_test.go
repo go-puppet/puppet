@@ -251,7 +251,7 @@ func TestStdlibNumberErrors(t *testing.T) {
 		{`notice(to_bytes())`, "wrong number"},
 		{`notice(to_bytes("xx"))`, "cannot parse number"},
 		{`notice(to_bytes("1zz"))`, "unknown unit"},
-		{`notice(pw_hash("x","sha512","salt"))`, "not implemented"},
+		{`notice(pw_hash("x","sha512","salt"))`, "not a valid hash type"},
 	}
 	for _, tc := range cases {
 		if err := evalErr(t, tc.src); !strings.Contains(err, tc.want) {

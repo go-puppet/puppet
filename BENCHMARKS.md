@@ -39,6 +39,52 @@ So an end-to-end compile of a real module class is on the order of **40
 microseconds**. (Numbers vary by host; regenerate the table with the command
 above on the machine under test.)
 
+### stdlib digest / crypt / random / time functions
+
+The non-trivial functions added to complete the stdlib surface (cryptographic
+digests, `pw_hash` crypt algorithms, deterministic seeded random, `strftime`)
+have their own `Benchmark*` functions in
+[`eval/stdlib_gap_bench_test.go`](eval/stdlib_gap_bench_test.go).
+
+| Benchmark              | Time/op  | Allocs/op | What it measures                              |
+|------------------------|---------:|----------:|-----------------------------------------------|
+| `BenchmarkSHA256`      | ~250 ns  | 4         | `sha256()` hex digest of a short string       |
+| `BenchmarkFqdnRand`    | ~7 µs    | 7         | MD5 seed → MRI-compatible MT19937 → `rand`    |
+| `BenchmarkMTSeed`      | ~7 µs    | 5         | seed one MT19937 (init-by-array)              |
+| `BenchmarkStrftime`    | ~0.4 µs  | 9         | expand a multi-directive `strftime` format    |
+| `BenchmarkPwHashSHA512`| ~1.1 ms  | ~10 000   | SHA-512-crypt (**5000** hash rounds, `$6$`)   |
+| `BenchmarkPwHashBcrypt`| ~50 ms   | 5         | bcrypt at cost 10 (2¹⁰ Blowfish key rounds)   |
+
+The `pw_hash` timings are **deliberately dominated by the algorithm's work
+factor** (crypt-SHA's 5000 rounds; bcrypt's exponential cost) — these mirror the
+reference crypt(3)/OpenBSD costs exactly and must not be "optimised" away, since
+the cost *is* the security property. The digest, random and `strftime`
+benchmarks measure pure Go overhead and carry no such intrinsic floor.
+
+**Reference methodology (MRI puppet, Tart VM).** In the same Debian Tart VM used
+for the compiler benchmarks (Ruby 2.7–3.2 + `puppet` gem), time the equivalent
+functions to compare like-for-like:
+
+```sh
+# digests / random / strftime (functions dispatched through the evaluator):
+ruby -rpuppet -rbenchmark -e '
+  Puppet.initialize_settings
+  scope = Puppet::Parser::Scope.new(Puppet::Parser::Compiler.new(
+    Puppet::Node.new("bench", :facts => Puppet::Node::Facts.new("bench",
+      "networking" => {"fqdn" => "host.example.com"}))))
+  n = 100_000
+  puts "sha256:  %.1f ns/op" % (Benchmark.realtime { n.times { scope.call_function("sha256", ["x"]) } }/n*1e9)
+  puts "fqdn_rand: %.1f ns/op" % (Benchmark.realtime { n.times { scope.call_function("fqdn_rand", [30]) } }/n*1e9)
+'
+# pw_hash correctness/parity is verified byte-for-byte against `openssl passwd`
+# (-6/-5/-1) and the canonical OpenBSD bcrypt vectors in the differential tests,
+# so its cost is fixed by the algorithm, not the implementation.
+```
+
+Because MRI's `sha256`/`fqdn_rand` call into C (`Digest`, `Random`) while
+go-puppet stays pure Go, the honest comparison is on the *dispatch + algorithm*
+path shown above; record `MRI_ns_per_op / Go_ns_per_op` alongside the table.
+
 ## Reference comparison (MRI Puppet)
 
 The reference is the Ruby `puppet` gem's parser + compiler. The puppet gem
