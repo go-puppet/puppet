@@ -36,7 +36,6 @@ func registerStdlibString(e *Evaluator) {
 	e.funcs["str2num"] = builtinStr2num
 	e.funcs["strlen"] = builtinStrlen
 	e.funcs["uriescape"] = recursiveStrFn(uriEscape)
-	e.funcs["shell_escape"] = builtinShellEscape
 	e.funcs["versioncmp"] = builtinVersioncmp
 	e.funcs["regsubst"] = builtinRegsubst
 	e.funcs["match"] = builtinMatch
@@ -333,28 +332,6 @@ func builtinStrlen(_ *Context, args []Value, _ *Block) (Value, error) {
 		return nil, err
 	}
 	return int64(len([]rune(s))), nil
-}
-
-func builtinShellEscape(_ *Context, args []Value, _ *Block) (Value, error) {
-	if len(args) != 1 {
-		return nil, wrongArgs("shell_escape")
-	}
-	s := stringify(args[0])
-	if s == "" {
-		return "''", nil
-	}
-	safe := true
-	for _, c := range []byte(s) {
-		if !((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') ||
-			c == '_' || c == '-' || c == '.' || c == '/' || c == ',' || c == ':' || c == '+' || c == '=') {
-			safe = false
-			break
-		}
-	}
-	if safe {
-		return s, nil
-	}
-	return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'", nil
 }
 
 func builtinStrToResource(_ *Context, args []Value, _ *Block) (Value, error) {
