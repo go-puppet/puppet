@@ -27,6 +27,27 @@ func registerStdlib(e *Evaluator) {
 	registerStdlibRandom(e)
 	registerStdlibTime(e)
 	registerStdlibEncode(e)
+	registerStdlibShellwords(e)
+	registerStdlibPassword(e)
+	registerStdlibValidate2(e)
+	registerStdlibSerialize(e)
+	registerStdlibHocon(e)
+	registerStdlibExtra(e)
+	registerStdlibAliases(e)
+}
+
+// registerStdlibAliases installs the stdlib::-namespaced aliases for functions
+// that puppetlabs-stdlib also exposes (or now only exposes) under that
+// namespace, pointing them at the already-registered bare implementations.
+func registerStdlibAliases(e *Evaluator) {
+	for _, name := range []string{
+		"end_with", "start_with", "extname", "type_of",
+		"to_json", "to_json_pretty", "to_yaml", "to_python", "to_ruby",
+	} {
+		if fn, ok := e.funcs[name]; ok {
+			e.funcs["stdlib::"+name] = fn
+		}
+	}
 }
 
 // --- small argument helpers -----------------------------------------------

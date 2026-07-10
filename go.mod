@@ -11,3 +11,5 @@ require (
 require github.com/go-ruby-yaml/yaml v0.0.0-20260706120500-56d458798003
 
 require golang.org/x/crypto v0.54.0
+
+require github.com/go-hocon/hocon v0.0.0-20260709172937-6d69e3b57178

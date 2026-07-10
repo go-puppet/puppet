@@ -52,7 +52,7 @@ func TestStdlibStringFns(t *testing.T) {
 		{`bool2str(true, "on", "off")`, "on"},
 		{`uriescape("a b/c")`, "a%20b%2Fc"},
 		{`shell_escape("plain")`, "plain"},
-		{`shell_escape("a b")`, "'a b'"},
+		{`shell_escape("a b")`, `a\ b`},
 		{`shell_escape("")`, "''"},
 		{`start_with("hello", "he")`, "true"},
 		{`start_with("hello", ["x","he"])`, "true"},
