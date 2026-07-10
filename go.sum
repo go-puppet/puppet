@@ -6,6 +6,8 @@ github.com/go-hocon/hocon v0.0.0-20260709172937-6d69e3b57178 h1:EGvh/i6BkxL7/jMO
 github.com/go-hocon/hocon v0.0.0-20260709172937-6d69e3b57178/go.mod h1:2231cAwqF+bztx0saIVdVSKtnvkx1VVxncHSNSEPu/4=
 github.com/go-pcore/pcore v0.0.0-20260708052910-1416bf219e47 h1:pPEpa5r9lGvOEbiyt04kdlg3up8SnfYc6tRTsPuu2Ec=
 github.com/go-pcore/pcore v0.0.0-20260708052910-1416bf219e47/go.mod h1:MgngaL59lB3D41kl/VWYfkem1sJDBbh3JXG/y/Lrnjo=
+github.com/go-ruby-hcl2/hcl2 v0.0.0-20260710124332-eb19348a7e48 h1:n1ciIb0KvjyO3bzr7JGemsYQSNj6cMAhoBPja9U0dc0=
+github.com/go-ruby-hcl2/hcl2 v0.0.0-20260710124332-eb19348a7e48/go.mod h1:zPgLGk8wYhXACwDsJqxkdK09WgWbJwalPxiw6qHMGQg=
 github.com/go-ruby-yaml/yaml v0.0.0-20260706120500-56d458798003 h1:SJ9mY8e11Lv0MbTh9CSxYMhY4AyaDHRmc3mYE+WQOQM=
 github.com/go-ruby-yaml/yaml v0.0.0-20260706120500-56d458798003/go.mod h1:HtbQgnZpSTJBAhPg1jOKgHycZl3tXgf9ZdOu4dnHWjQ=
 golang.org/x/crypto v0.54.0 h1:YLIA59K4fiNzHzjnZt2tUJQjQtUWfWbeHBqKtk3eScw=
