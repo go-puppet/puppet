@@ -3,12 +3,15 @@ Copyright (c) 2026, the go-puppet/puppet authors
 SPDX-License-Identifier: BSD-3-Clause
 -->
 
-# Performance: go-puppet vs. reference MRI Puppet
+# Performance: go-puppet vs. reference Puppet (MRI **and** JRuby)
 
 The bar for this project is **at least as fast as the reference implementation**
-(MRI Ruby Puppet). This document records the Go-side benchmarks that ship with
-the code and the reproducible methodology for comparing them against the
-reference `puppet` gem.
+— and since Puppet Server runs on **JRuby** while the CLI runs on **MRI**, the
+honest reference set is *both* Ruby engines. This document records the Go-side
+benchmarks that ship with the code and the reproducible methodology for comparing
+them against the reference `puppet` gem on MRI and JRuby. The headline measured
+tables (z15, MRI + JRuby) are in
+[Measured results — MRI **and** JRuby](#measured-results--mri-and-jruby-linuxone-z15-2026-07-11).
 
 ## Go benchmarks (shipped)
 
@@ -159,10 +162,66 @@ boot per run — so the **parse** number above is the honest apples-to-apples
 figure. On both real architectures the pure-Go parser is well over an order of
 magnitude faster than the reference, so the "≥ reference" rule is satisfied.
 
+## Measured results — MRI **and** JRuby (LinuxONE z15, 2026-07-11)
+
+Puppet Server runs on **JRuby**, whose HotSpot JIT beats MRI on sustained
+compile, so the honest reference set is **both** MRI *and* JRuby. All three
+implementations were run on the **same** IBM z15 host over the **identical**
+`webserver.pp` manifest (the `benchManifest` above).
+
+| Component | Version |
+|-----------|---------|
+| Host | IBM LinuxONE, z15 (8561), 2 vCPU, `s390x` |
+| go-puppet | Go 1.26.4 |
+| MRI | Ruby 3.2.3, puppet 8.10.0 |
+| JRuby | jruby 9.4.6.0 (Ruby 3.1.4 compat) on OpenJDK 21.0.11 (HotSpot, +jit), puppet 8.10.0 |
+
+**Warmed steady-state** (in-process, after warm-up; the Ruby engines run a large
+warm-up loop so JRuby reaches its C2-JIT steady state before timing — this is the
+condition most flattering to the interpreters, not to go-puppet):
+
+| Operation | go-puppet | MRI 3.2.3 | JRuby 9.4.6 (warmed) | MRI ÷ Go | JRuby ÷ Go |
+|-----------|----------:|----------:|---------------------:|---------:|-----------:|
+| Parse             | 64.5 µs  | 1 207 µs | 1 028 µs | **18.7×** | **15.9×** |
+| Compile (catalog) | 110.6 µs | 2 997 µs | 3 395 µs | **27.1×** | **30.7×** |
+
+`Parse` is `EvaluatingParser#parse_string` vs go-puppet `BenchmarkParse`.
+`Compile` is a full in-process `Puppet::Parser::Compiler.compile` vs go-puppet
+`BenchmarkCompileCatalog`. Note that go-puppet's compile number **re-lexes and
+re-parses on every iteration**, whereas after warm-up the Ruby engines serve the
+compile from a **cached AST** (parse amortised away) — a handicap in the
+reference's favour, and go-puppet still wins 27–31×.
+
+**Does warmed JRuby narrow the gap?** On **parse** it does, slightly (18.7× →
+15.9×): JRuby's warmed parser edges out MRI (1 028 vs 1 207 µs). On **compile**
+it does **not** — warmed JRuby is actually a touch *slower* than MRI (3 395 vs
+2 997 µs), so the gap to go-puppet *widens* (27.1× → 30.7×). JRuby's JIT pays off
+on long-running Puppet Server processes, but for a single short catalog compile
+the JVM's per-compile allocation/GC overhead outweighs the JIT win. **go-puppet
+remains ≥ both references on every axis.**
+
+**Cold single-shot wall-clock** — one parse + one full compile from a fresh
+process, *including* interpreter/JVM boot (what a one-shot CLI user actually
+pays; averaged over repeated invocations):
+
+| | go-puppet | MRI | JRuby |
+|-|----------:|----:|------:|
+| cold parse+compile | **1.73 ms** | 810 ms | 6 100 ms |
+
+go-puppet's static native binary starts in ~1–2 ms, so cold it is ~470× faster
+than MRI and ~3 500× faster than JRuby — the JVM boot cost (~6 s) is exactly why
+one never measures JRuby cold as its "real" number, and why we report the warmed
+steady-state above as the *fair* interpreter figure.
+
 ### Status
 
 - Go benchmarks: **shipped and green** (numbers above).
-- MRI reference: **measured on real `s390x` and `riscv64` hardware** (table
-  above), Puppet 8.10.0 on Ruby 3.2.3 / 3.3.8. The Go implementation wins by
-  19–39× on parse because it runs the compiler as native code with no per-call
-  Pops AST/object allocation.
+- MRI reference: **measured on real `s390x` and `riscv64` hardware**, Puppet
+  8.10.0 on Ruby 3.2.3 / 3.3.8.
+- JRuby reference: **measured on real `s390x` hardware** (z15), Puppet 8.10.0 on
+  jruby 9.4.6.0 / OpenJDK 21, warmed to JIT steady state.
+- Result: the pure-Go implementation is **18.7× (parse) / 27.1× (compile)**
+  faster than warmed MRI and **15.9× / 30.7×** faster than warmed JRuby, and
+  ~470–3 500× faster on a cold one-shot. Warmed JRuby narrows only the parse gap,
+  and never overtakes go-puppet; the "≥ reference" rule holds against **both**
+  reference implementations.
