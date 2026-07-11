@@ -15,3 +15,5 @@ require golang.org/x/crypto v0.54.0
 require github.com/go-hocon/hocon v0.0.0-20260709172937-6d69e3b57178
 
 require github.com/go-ruby-hcl2/hcl2 v0.0.0-20260710124332-eb19348a7e48
+
+require github.com/go-augeas/augeas v0.0.0-20260710212525-99b7e90237b2

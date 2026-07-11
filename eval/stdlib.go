@@ -32,6 +32,11 @@ func registerStdlib(e *Evaluator) {
 	registerStdlibValidate2(e)
 	registerStdlibSerialize(e)
 	registerStdlibHocon(e)
+	registerStdlibToml(e)
+	registerStdlibPson(e)
+	registerStdlibAugeas(e)
+	registerStdlibSensitive(e)
+	registerStdlibCatalog(e)
 	registerStdlibExtra(e)
 	registerStdlibAliases(e)
 }

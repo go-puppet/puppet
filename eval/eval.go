@@ -95,6 +95,7 @@ type Evaluator struct {
 	eppStack     []*strings.Builder
 	nodeName     string
 	curContainer string
+	deprecated   map[string]bool
 }
 
 // lookup resolves key through the configured Hiera, feeding the current scope's

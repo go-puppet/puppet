@@ -203,6 +203,8 @@ func (e *Evaluator) typeCast(name string, args []Value, pos ast.Position) (Value
 	}
 	v := normalize(args[0])
 	switch name {
+	case "Sensitive":
+		return NewSensitive(v), nil
 	case "Integer":
 		return toInt(v, pos)
 	case "Float":
