@@ -24,7 +24,7 @@ binding to **[go-hiera](https://github.com/go-hiera/hiera)**, and facts to
 reimplements them.
 
 ```go
-prog, _ := puppet.Parse(`
+cat, logs, _ := eval.EvalString(`
   class nginx (String $vhost = 'localhost', Integer[1,65535] $port = 80) {
     package { 'nginx': ensure => installed }
     -> service { 'nginx': ensure => running, require => Package['nginx'] }
@@ -35,14 +35,20 @@ fmt.Println(cat.JSON()) // Puppet catalog JSON: resources + containment/ordering
 _ = logs                // notice/info/warning/err messages
 ```
 
+Need a Terraform-style front-end instead? `hcl.Parse` reads an HCL2 manifest and
+produces the *same* `ast.Program`, so it compiles to an identical catalog through
+the same evaluator (see [The HCL2 front-end](#the-hcl2-front-end)).
+
 ## Status
 
-**Milestones 1 & 2 complete** — the lexer + parser + AST **and** the evaluator +
-catalog compiler — at **100 % test coverage** (enforced as a CI gate, including
-every parse- and eval-error path), `gofmt` + `go vet` clean, and green across all
-**six 64-bit Go targets** (amd64, arm64, riscv64, loong64, ppc64le, s390x). The
-type system is delegated to **go-pcore**, data binding to **go-hiera**, and facts
-to an injectable provider backed by **go-facter**.
+**The lexer, parser, AST, evaluator and catalog compiler are complete** — plus
+EPP/ERB templates, resource defaults/overrides/collectors, exported resources,
+the plan/apply language, an extensive stdlib and the Terraform-style
+[HCL2 front-end](#the-hcl2-front-end). All at **100 % test coverage** (enforced as
+a CI gate, including every parse- and eval-error path), `gofmt` + `go vet` clean,
+and green across all **six 64-bit Go targets** (amd64, arm64, riscv64, loong64,
+ppc64le, s390x). The type system is delegated to **go-pcore**, data binding to
+**go-hiera**, and facts to an injectable provider backed by **go-facter**.
 
 ## What it parses
 
@@ -72,7 +78,11 @@ The evaluator compiles a manifest to a catalog:
 | **Data types** | data-type expressions evaluated through **go-pcore** (`assert_type`, `type`, `=~ Integer[1,10]`, typed parameters) |
 | **Classes & defines** | `include`/`require`/`contain`, `class { }`, `inherits`, defined-type instantiation with `$title`/`$name`, automatic Hiera parameter data-binding |
 | **Iteration** | `each`, `map`, `filter`, `reduce`, `with`, `slice` over arrays and hashes |
-| **Built-in functions** | logging (`notice`/`info`/`warning`/`err`/`debug`/…), `fail`, `lookup` (via **go-hiera**), `assert_type`, `type`, and a core string/array/hash/numeric set |
+| **Built-in functions** | logging (`notice`/`info`/`warning`/`err`/`debug`/…), `fail`, `lookup` (via **go-hiera**), `assert_type`, `type`, and an extensive stdlib (string/array/hash/numeric, digests, encoding, path, time, TOML/JSON/PSON, `validate_*`, `pw_hash`, `shellwords`, …) |
+| **Templates** | `epp`/`inline_epp` (EPP) and `template`/`inline_template` (ERB), through an injectable template loader |
+| **Resource forms** | declarations, defaults `Type { }`, overrides `Type[t] { }`, virtual/collectors `<\| \|>`, exported `@@` + `<<\| \|>>` via an injectable exported-resource store |
+| **Plans** | Bolt-style plan/apply language (`EvalPlanString`, `apply { }`) through an injectable plan executor |
+| **Regex capture** | `$1`…`$n` match variables after `=~` |
 | **Catalog** | resource graph with containment + relationship + metaparameter (`require`/`before`/`notify`/`subscribe`) edges, serialized to Puppet catalog JSON |
 
 ### The registry seam
@@ -89,18 +99,51 @@ functions and types without this repository depending on the Ruby VM.
 | `…/lexer` | tokenizer (`Lex`) |
 | `…/parser` | recursive-descent parser (`Parse`, `ParseExpression`) |
 | `…/ast` | Puppet::Pops-style node model + `Sexpr` renderer |
-| `…/eval` | evaluator (`EvalString`, `Evaluator`, `RegisterFunction`, `WithFacts`/`WithHiera`) |
+| `…/eval` | evaluator (`EvalString`, `EvalPlanString`, `Evaluator`, `RegisterFunction`, `WithFacts`/`WithHiera`/`WithNodeName`/`WithTemplateLoader`/`WithExportedStore`/`WithPlanExecutor`) |
 | `…/catalog` | catalog model + Puppet catalog JSON |
+| `…/hcl` | Terraform-style HCL2 front-end (`Parse`) → the same `ast.Program` |
+
+## The HCL2 front-end
+
+`hcl.Parse` reads a Terraform-style **HCL2** manifest and produces the very same
+`ast.Program` the native Puppet (`.pp`) parser produces, so an HCL2 manifest
+compiles to an **identical catalog** through the existing evaluator. The HCL2
+grammar itself is parsed by the pure-Go
+[`go-ruby-hcl2/hcl2`](https://github.com/go-ruby-hcl2/hcl2); this package only
+translates its read-only expression AST into Puppet's model.
+
+```go
+prog, _ := hcl.Parse(`
+  locals { mode = "0644" }
+  resource "file" "app" {
+    ensure  = "present"
+    mode    = local.mode
+    require = resource.package.app
+  }
+`)
+// same *ast.Program as:  $mode = '0644'
+//                        file { 'app': ensure => 'present', mode => $mode,
+//                                      require => Package['app'] }
+```
+
+The v0.1 mapping covers `resource`/`locals` blocks, root-level assignments,
+literals, templates, attribute/index traversal, unary/binary operators, and
+resource-reference relationships. Constructs not yet mapped (function calls, the
+`a ? b : c` conditional, `for` comprehensions, `%{…}` template directives and
+unknown block types) return a clear `unsupported in HCL2 v0.1: …` error rather
+than a fake stub.
 
 ## Roadmap
 
-- **v0.1 (this release):** lexer, parser, AST, evaluator, catalog compiler,
-  built-in function set, iteration, Hiera-backed `lookup()`, facts, and the
-  function/type registry seam.
-- **Staged for v0.2 (parsed but not yet evaluated — no fake stubs):** EPP/ERB
-  templates, resource **defaults**/**overrides**/**collectors**, exported
-  resources / PuppetDB, the full stdlib module, and the plan/apply language.
-  Evaluating these today returns a clear "staged for v0.2" error.
+- **Shipped:** lexer, parser, AST, evaluator, catalog compiler, iteration,
+  Hiera-backed `lookup()`, facts, and the function/type registry seam; **plus**
+  EPP/ERB templates, resource **defaults**/**overrides**/**collectors**, exported
+  resources, the plan/apply language, an extensive stdlib, `$1` regex-match
+  capture, and the Terraform-style HCL2 front-end.
+- **Still in progress (returns a clear error today — no fake stubs):** Pcore
+  **type constructors** beyond the scalar core (`Timestamp()`, `SemVer()`, …), and
+  the HCL2 front-end's v0.2 expression set (function calls, `a ? b : c`, `for`
+  comprehensions, `%{…}` template directives, additional block types).
 
 ## Principles
 
