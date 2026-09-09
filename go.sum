@@ -1,5 +1,7 @@
 github.com/go-augeas/augeas v0.0.0-20260710212525-99b7e90237b2 h1:LhN0Dnmu1QJepSA2VIVY70+8KmCnSWwDP3xAkKWGUts=
 github.com/go-augeas/augeas v0.0.0-20260710212525-99b7e90237b2/go.mod h1:syDsgdbvlbD/zjgs6nJktc2araTaN5DEL3a/OvPCrkM=
+github.com/go-encryptions/unixcrypt v0.1.0 h1:XWk4h9uCDd+T2hovOzgO0B2vOdJvAwi9nbOBVb3o62c=
+github.com/go-encryptions/unixcrypt v0.1.0/go.mod h1:B1dJSjz3kdxvP7cpi5xSzyxezgBijmtNCUeCKqqDd3o=
 github.com/go-facter/facter v0.0.0-20260708052836-752b1a3edee0 h1:1PUT8X4gKZsXEVdoMS//ceD4X2jiK9fEJinyU2iuIpI=
 github.com/go-facter/facter v0.0.0-20260708052836-752b1a3edee0/go.mod h1:ghuoOHWXdq5dE3GLPDiz3Uy0ORrvK+1hB7QC997ez2U=
 github.com/go-hiera/hiera v0.0.0-20260708051558-73bff6edd0e9 h1:SydVW8z9lhzfLFvLTsaUPoNmStmdp/09DmI7Vwxz9QE=
@@ -12,5 +14,5 @@ github.com/go-ruby-hcl2/hcl2 v0.0.0-20260710124332-eb19348a7e48 h1:n1ciIb0KvjyO3
 github.com/go-ruby-hcl2/hcl2 v0.0.0-20260710124332-eb19348a7e48/go.mod h1:zPgLGk8wYhXACwDsJqxkdK09WgWbJwalPxiw6qHMGQg=
 github.com/go-ruby-yaml/yaml v0.0.0-20260706120500-56d458798003 h1:SJ9mY8e11Lv0MbTh9CSxYMhY4AyaDHRmc3mYE+WQOQM=
 github.com/go-ruby-yaml/yaml v0.0.0-20260706120500-56d458798003/go.mod h1:HtbQgnZpSTJBAhPg1jOKgHycZl3tXgf9ZdOu4dnHWjQ=
-golang.org/x/crypto v0.54.0 h1:YLIA59K4fiNzHzjnZt2tUJQjQtUWfWbeHBqKtk3eScw=
-golang.org/x/crypto v0.54.0/go.mod h1:KWL8ny2AZdGR2cWmzeHrp2azQPGogOv+HeQaVEXC2dk=
+golang.org/x/crypto v0.57.0 h1:3ZVCjf8Ggz7zneR/EHRVx68Ctf+2pmIMP2UFhh9cC6M=
+golang.org/x/crypto v0.57.0/go.mod h1:Fdz0i5U6CoizGwLda9DttjSk6qlZo25zYNtR+ycvuZA=
