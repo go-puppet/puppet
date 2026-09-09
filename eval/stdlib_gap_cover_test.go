@@ -8,6 +8,8 @@ import (
 	"math/big"
 	"testing"
 	"time"
+
+	"github.com/go-encryptions/unixcrypt"
 )
 
 // TestCryptLongInputs exercises the full-block digest paths in the crypt
@@ -30,15 +32,18 @@ func TestCryptLongInputs(t *testing.T) {
 }
 
 // TestCryptInternals white-box-tests the defensive branches that the public
-// pw_hash validation makes unreachable.
+// pw_hash validation makes unreachable. The actual crypt(3) algorithms
+// (including bcrypt's own salt/cost parsing) now live in
+// github.com/go-encryptions/unixcrypt, which carries its own equivalent
+// coverage for that package's error paths — this test now only needs to
+// confirm builtinPwHash's own error-wrapping line around unixcrypt calls,
+// which pw_hash's own bcryptSaltRe validation makes provably unreachable
+// through the public API (its cost/length constraints exactly match
+// unixcrypt.BcryptFromMCF's own), by calling the wrapped function directly
+// with input the public regex would reject.
 func TestCryptInternals(t *testing.T) {
-	// bcryptB64Decode ignores characters outside its alphabet.
-	if got := bcryptB64Decode("CCCC$CCCCCCCCCCCCCCCCC."); len(got) == 0 {
-		t.Error("bcryptB64Decode dropped everything")
-	}
-	// invalid bcrypt cost is rejected.
-	if _, err := bcryptCrypt("pw", "2b", "zz$CCCCCCCCCCCCCCCCCCCCC."); err == nil {
-		t.Error("bcryptCrypt should reject a non-numeric cost")
+	if _, err := unixcrypt.BcryptFromMCF("pw", "2b", "zz$CCCCCCCCCCCCCCCCCCCCC."); err == nil {
+		t.Error("BcryptFromMCF should reject a non-numeric cost")
 	}
 }
 

@@ -9,6 +9,8 @@ import (
 	"math/big"
 	"testing"
 	"time"
+
+	"github.com/go-encryptions/unixcrypt"
 )
 
 // Benchmarks for the non-trivial functions added to close the stdlib gap. The
@@ -31,14 +33,14 @@ func BenchmarkPwHashSHA512(b *testing.B) {
 	// cost and mirrors the reference crypt(3) work factor.
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		shaCrypt("correct horse battery staple", "abc123", true)
+		unixcrypt.SHA512Crypt("correct horse battery staple", "abc123", 0)
 	}
 }
 
 func BenchmarkPwHashBcrypt(b *testing.B) {
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		if _, err := bcryptCrypt("password", "2b", "10$cgT08pfGUo9SUIIvXrIJ1u"); err != nil {
+		if _, err := unixcrypt.BcryptFromMCF("password", "2b", "10$cgT08pfGUo9SUIIvXrIJ1u"); err != nil {
 			b.Fatal(err)
 		}
 	}
