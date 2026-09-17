@@ -8,7 +8,7 @@ require (
 	github.com/go-pcore/pcore v0.0.0-20260831114716-f9c3e7f59eaa
 )
 
-require github.com/go-ruby-yaml/yaml v0.0.0-20260908191225-3b02533c48f3
+require github.com/go-ruby-yaml/yaml v0.0.0-20260916104302-910ced2db1c7
 
 require golang.org/x/crypto v0.57.0
 
