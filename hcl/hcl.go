@@ -281,7 +281,7 @@ func capitalize(s string) string {
 
 // mapTemplate maps a quoted-string or heredoc template. With no interpolation
 // it yields a static [ast.String]; otherwise an [ast.Concat] whose parts are
-// literal-text [ast.String]s interleaved with the mapped `${…}` expressions.
+// literal-text [ast.String] parts interleaved with the mapped `${…}` expressions.
 // Backslash escapes are expanded for quoted strings and kept literal for
 // heredocs.
 func mapTemplate(raw string, heredoc bool) (ast.Node, error) {
