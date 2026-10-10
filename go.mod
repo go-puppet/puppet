@@ -10,6 +10,6 @@ require (
 	github.com/go-hocon/hocon v0.0.0-20261004235045-8d91a5974fd1
 	github.com/go-pcore/pcore v0.0.0-20261004232152-857d5dc0c357
 	github.com/go-ruby-hcl2/hcl2 v0.0.0-20261005010609-6dbd0d5c20ab
-	github.com/go-ruby-yaml/yaml v0.0.0-20261005142316-b55f761c1a87
-	golang.org/x/crypto v0.57.0
+	github.com/go-ruby-yaml/yaml v0.1.0
+	golang.org/x/crypto v0.58.0
 )
