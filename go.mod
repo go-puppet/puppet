@@ -3,12 +3,12 @@ module github.com/go-puppet/puppet
 go 1.27.1
 
 require (
-	github.com/go-augeas/augeas v0.0.0-20261025200739-36eb8c4ae75e
+	github.com/go-augeas/augeas v0.0.0-20261101075521-44aa977de4ad
 	github.com/go-encryptions/unixcrypt v0.2.0
-	github.com/go-facter/facter v0.0.0-20261025201003-118a30d88288
-	github.com/go-hiera/hiera v0.0.0-20261025201049-ff3b0c640dd4
-	github.com/go-hocon/hocon v0.0.0-20261025201053-7741c9a46c6d
-	github.com/go-pcore/pcore v0.0.0-20261025230242-d8a750e587ab
+	github.com/go-facter/facter v0.0.0-20261101004259-4dafb1d84b43
+	github.com/go-hiera/hiera v0.0.0-20261101003848-5d1613be4b0c
+	github.com/go-hocon/hocon v0.0.0-20261101004704-1d2c08b7d9e0
+	github.com/go-pcore/pcore v0.0.0-20261101003916-bf3cea15d85b
 	github.com/go-ruby-hcl2/hcl2 v0.0.0-20261025191252-70f86f39a825
 	github.com/go-ruby-yaml/yaml v0.1.0
 	golang.org/x/crypto v0.58.0
