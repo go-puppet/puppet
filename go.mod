@@ -4,7 +4,7 @@ go 1.27.1
 
 require (
 	github.com/go-augeas/augeas v0.0.0-20261101075521-44aa977de4ad
-	github.com/go-encryptions/unixcrypt v0.2.0
+	github.com/go-encryptions/unixcrypt v0.2.1
 	github.com/go-facter/facter v0.0.0-20261101004259-4dafb1d84b43
 	github.com/go-hiera/hiera v0.0.0-20261101003848-5d1613be4b0c
 	github.com/go-hocon/hocon v0.0.0-20261101004704-1d2c08b7d9e0
