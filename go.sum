@@ -1,7 +1,7 @@
 github.com/go-augeas/augeas v0.0.0-20261101075521-44aa977de4ad h1:vw+wxjReV46OS1dWFZqeNu9kfp9n6t+sZCfGN7Xa4Ro=
 github.com/go-augeas/augeas v0.0.0-20261101075521-44aa977de4ad/go.mod h1:EsdHeGPJDxj7ceLUGxj3Eo2tbca0ZTkdR9kCuZvMX34=
-github.com/go-encryptions/unixcrypt v0.2.1 h1:pNl9GALnB16NzMXNOHtcvnuJVpWmIFy9mD9p0oywaV8=
-github.com/go-encryptions/unixcrypt v0.2.1/go.mod h1:Ww0M05XzQfqbtMXo6pn6qupeDOVF9WvJ6js43AMuo7U=
+github.com/go-encryptions/unixcrypt v0.3.1 h1:gg0HfvhWArWylgEqEILeVb8DGAilpXBF4X4yHWJMT+w=
+github.com/go-encryptions/unixcrypt v0.3.1/go.mod h1:Ww0M05XzQfqbtMXo6pn6qupeDOVF9WvJ6js43AMuo7U=
 github.com/go-facter/facter v0.0.0-20261101004259-4dafb1d84b43 h1:0iUuWocHisTWYNRvvyUPu0bNhIj3F1pWRHJZmyKaui4=
 github.com/go-facter/facter v0.0.0-20261101004259-4dafb1d84b43/go.mod h1:QOtthkJYvesNfku9hEOQvwmnXE3zzlUBnq6RjYBXOQg=
 github.com/go-hiera/hiera v0.0.0-20261101003848-5d1613be4b0c h1:gbBPwnWVWZPZ+9xroWDFWtLkeREAKWD5ef9j6rS9BUs=
